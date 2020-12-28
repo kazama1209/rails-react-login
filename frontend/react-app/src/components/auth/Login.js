@@ -1,22 +1,28 @@
 import React, { useState } from 'react'
 import axios from 'axios'
+import Cookies from 'js-cookie'
 
 const Login = (props) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
   const handleSubmit = (event) => {
-    axios.post('http://localhost:3000/login',
-      {
-        user: {
-            email: email,
-            password: password,
-        }
+    axios({
+      method: 'post',
+      url: 'http://localhost:3000/auth/sign_in',
+      data: {
+        email: email,
+        password: password,
       },
-      { withCredentials: true }
-    ).then(response => {
-      if (response.data.logged_in) {
-        props.handleSuccessfulAuthentication(response.data);
+    })
+    .then(response => {
+      if (response.status === 200) {
+        Cookies.set('_access_token', response.headers['access-token']);
+        Cookies.set('_client', response.headers['client']);
+        Cookies.set('_uid', response.headers['uid']);
+
+        props.handleLogin(response.data);
+        props.history.push('/dashboard');
       }
     }).catch(error => {
       console.log(error);
@@ -27,6 +33,7 @@ const Login = (props) => {
   return (
     <>
       <p>ログイン</p>
+
       <form onSubmit={handleSubmit}>
         <input
           type='email'
@@ -35,6 +42,7 @@ const Login = (props) => {
           value={email}
           onChange={event => setEmail(event.target.value)}
         />
+
         <input
           type='password'
           name='password'
@@ -42,6 +50,7 @@ const Login = (props) => {
           value={password}
           onChange={event => setPassword(event.target.value)}
         />
+        
         <button type="submit">ログイン</button>
       </form>
     </>

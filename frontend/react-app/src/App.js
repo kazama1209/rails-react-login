@@ -1,62 +1,84 @@
 import React, { useState, useEffect } from 'react'
 import { BrowserRouter, Switch, Route } from 'react-router-dom'
 import axios from 'axios'
+import Cookies from 'js-cookie'
 
 import Home from './components/pages/Home'
 import Dashboard from './components/pages/Dashboard'
+import SignUp from './components/auth/SignUp'
+import Login from './components/auth/Login'
+import Header from './components/common/Header'
 
 const App = () => {
-  const [loggedInStatus, setLoggedInStatus] = useState('未ログイン');
+  const [logInStatus, setlogInStatus] = useState('×');
   const [user, setUser] = useState({});
 
   const handleLogin = (data) => {
-    setLoggedInStatus('ログインなう');
-    setUser(data.user);
+    setlogInStatus('◯');
+    setUser(data);
   }
 
   const handleLogout = () => {
-    setLoggedInStatus('未ログイン');
+    setlogInStatus('×');
     setUser({});
   }
 
   useEffect(() => {
     checkLoginStatus();
-  })
+  }, [user]);
 
   const checkLoginStatus = () => {
-    axios.get('http://localhost:3000/logged_in', { withCredentials: true })
-      .then(response => {
-        if (response.data.logged_in && loggedInStatus === '未ログイン') {
-          setLoggedInStatus("ログインなう");
-          setUser(response.data.user);
-        } else if (!response.data.logged_in && loggedInStatus === 'ログインなう') {
-          setLoggedInStatus('未ログイン');
-          setUser({});
-        }
-      })
-      .catch(error => {
-        console.log('ログインエラー', error);
+    axios({
+      method: 'get',
+      url: 'http://localhost:3000/check_login_status',
+      headers: {
+        'access-token': Cookies.get('_access_token'),
+        'client': Cookies.get('_client'),
+        'uid': Cookies.get('_uid'),
+      }
+    })
+    .then(response => {
+      if (response.data.login && logInStatus === '×') {
+        setlogInStatus("◯");
+        setUser(response.data.user);
+      } else if (!response.data.login && logInStatus === '◯') {
+        setlogInStatus('×');
+        setUser({});
+      }
+    })
+    .catch(error => {
+      console.log(error);
     })
   }
 
   return (
     <>
       <BrowserRouter>
+        <Header logInStatus={logInStatus} />
         <Switch>
-          <Route
-            exact path={'/'}
+          <Route exact path='/' component={Home} />
+
+          <Route exact path='/sign_up'
             render={props => (
-              <Home { ...props }
+              <SignUp { ...props }
                 handleLogin={handleLogin}
-                handleLogout={handleLogout}
-                loggedInStatus={loggedInStatus}
+              />
+            )}
+          />
+          <Route exact path='/login'
+            render={props => (
+              <Login { ...props }
+                handleLogin={handleLogin}
               />
             )}
           />
           <Route
-            exact path={'/dashboard'}
+            exact path='/dashboard'
             render={props => (
-              <Dashboard { ...props } loggedInStatus={loggedInStatus} />
+              <Dashboard { ...props }
+                logInStatus={logInStatus}
+                handleLogout={handleLogout}
+              />
             )}
           />
           <Route
